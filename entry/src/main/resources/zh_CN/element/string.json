@@ -15,6 +15,23 @@
     {
       "name": "search",
       "value": "搜索"
-    }
+    },
+    { "name": "clock", "value": "时钟" },
+    { "name": "cities", "value": "城市" },
+    { "name": "edit", "value": "编辑" },
+    { "name": "cancel", "value": "取消" },
+    { "name": "empty_edit", "value": "请先添加城市" },
+    { "name": "already_added", "value": "城市已添加" },
+    { "name": "hours_ahead", "value": "快%s小时" },
+    { "name": "hour_ahead", "value": "快%s小时" },
+    { "name": "hours_behind", "value": "慢%s小时" },
+    { "name": "hour_behind", "value": "慢%s小时" },
+    { "name": "same_time", "value": "时间相同" },
+    { "name": "local_time", "value": "本地时间" },
+    { "name": "world_clocks", "value": "世界时钟" },
+    { "name": "add_city", "value": "添加城市" },
+    { "name": "no_cities", "value": "尚无城市" },
+    { "name": "no_cities_hint", "value": "添加城市以查看当地时间" },
+    { "name": "no_results", "value": "未找到城市" }
   ]
 }

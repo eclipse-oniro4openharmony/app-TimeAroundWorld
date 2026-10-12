@@ -15,6 +15,23 @@
     {
       "name": "search",
       "value": "Search"
-    }
+    },
+    { "name": "clock", "value": "Clock" },
+    { "name": "cities", "value": "Cities" },
+    { "name": "edit", "value": "Edit" },
+    { "name": "cancel", "value": "Cancel" },
+    { "name": "empty_edit", "value": "Add a city before editing" },
+    { "name": "already_added", "value": "City already added" },
+    { "name": "hours_ahead", "value": "%s hours ahead" },
+    { "name": "hour_ahead", "value": "%s hour ahead" },
+    { "name": "hours_behind", "value": "%s hours behind" },
+    { "name": "hour_behind", "value": "%s hour behind" },
+    { "name": "same_time", "value": "Same time" },
+    { "name": "local_time", "value": "Local time" },
+    { "name": "world_clocks", "value": "World clocks" },
+    { "name": "add_city", "value": "Add city" },
+    { "name": "no_cities", "value": "No cities yet" },
+    { "name": "no_cities_hint", "value": "Add a city to see its local time" },
+    { "name": "no_results", "value": "No cities found" }
   ]
 }
