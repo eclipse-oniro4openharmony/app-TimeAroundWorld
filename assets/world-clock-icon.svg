@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Time Around World icon</title>
+  <rect width="512" height="512" rx="116" fill="#0F0026"/>
+  <circle cx="256" cy="256" r="170" fill="#F8F3FF"/>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#6024B5" stroke-width="16"/>
+  <ellipse cx="256" cy="256" rx="67" ry="138" fill="none" stroke="#00C9E5" stroke-width="14"/>
+  <path d="M118 256h276" fill="none" stroke="#00C9E5" stroke-width="14"/>
+  <path d="M256 256v-89m0 89 66 46" fill="none" stroke="#0F0026" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="17" fill="#FF27B7"/>
+  <circle cx="403" cy="108" r="27" fill="#FFEE4D"/>
+</svg>

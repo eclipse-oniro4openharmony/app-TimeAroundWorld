@@ -1,238 +1,130 @@
-import { MyDataSource, City, supportedSystemTimezone } from '../Data/DataSource'
-import { hilog } from '@kit.PerformanceAnalysisKit'
-
-PersistentStorage.persistProp<string[]>('selectedCities', [])
+import { City, getOffsetHours, supportedSystemTimezone } from '../Data/DataSource'
 
 @Component
 export struct ListPage {
-  pathStack: NavPathStack = new NavPathStack()
-  // 创建数据源 上面的例子对其初始化过了
-  @State dataSet: MyDataSource = new MyDataSource()
-  @State filteredCities: City[] = []
-  @State unfilteredCities: City[] = supportedSystemTimezone
-  //For search bar
-  @State changeValue: string = ''
-  @State isFiltered: boolean = false
-  @State isShouldFocus: boolean = false
-  private controller: SearchController = new SearchController()
-  @State isEnter: string = ''
+  private pathStack: NavPathStack = new NavPathStack()
+  @StorageLink('cityList') cityList: City[] = []
+  @State private visibleCities: City[] = supportedSystemTimezone
+  @State private query: string = ''
+  @State private selectedIndex: number = 0
   private scroller: Scroller = new Scroller()
   private alphabets: string[] =
     ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
       'X', 'Y', 'Z']
-  @State private selectedIndex: number = 0
-  @StorageLink('selectedCities') selectedCities: string[] = []
-  @StorageLink('cityList') cityList: City[] = []
 
-  onPageShow(): void {
-    AppStorage.setOrCreate("PathStack", this.pathStack)
+  private search(value: string): void {
+    this.query = value
+    const normalized = value.trim().toLowerCase()
+    this.visibleCities = normalized.length === 0 ? supportedSystemTimezone :
+      supportedSystemTimezone.filter((city: City) => city.name.toLowerCase().includes(normalized))
   }
 
-  aboutToAppear(): void {
-    for (let index = 0; index < this.cityList.length; index++) {
-      this.selectedCities[index] = this.cityList[index].name
-    }
+  private isSelected(city: City): boolean {
+    return this.cityList.some((selected: City) => selected.name === city.name)
   }
 
-  private mapAlphabetsIndex(): Map<string, number> {
-    let mapAlphabetsIndex: Map<string, number> = new Map()
-
-    for (let i = 0; i < this.unfilteredCities.length; i++) {
-      const element = this.unfilteredCities[i];
-      // 第一个字母直接加入 Map
-      if (i === 0) {
-        mapAlphabetsIndex.set(element.headerWord, i);
-      } else {
-        // 如果当前字母和前一个字母不一样，则加入 Map
-        if (element.headerWord != this.unfilteredCities[i - 1].headerWord) {
-          mapAlphabetsIndex.set(element.headerWord, i);
-        }
+  private select(city: City): void {
+    if (this.isSelected(city)) {
+      try {
+        this.getUIContext().getPromptAction().showToast({ message: $r('app.string.already_added') })
+      } catch (error) {
+        console.error(`Could not show city status: ${error}`)
       }
+      return
     }
-    return mapAlphabetsIndex;
+    try {
+      this.pathStack.pop(city)
+    } catch (error) {
+      console.error(`Could not select city: ${error}`)
+    }
+  }
+
+  private scrollToLetter(letter: string): void {
+    const index = supportedSystemTimezone.findIndex((city: City) => city.headerWord === letter)
+    if (index >= 0) {
+      this.scroller.scrollToIndex(index)
+    }
   }
 
   build() {
     NavDestination() {
-      Stack({ alignContent: Alignment.End }) {
-        Column() {
-          Search({
-            value: this.changeValue,
-            placeholder: Object($r("app.string.search")),
-            controller: this.controller,
-          })
-            .focusable(true)
-            .width("100%")
-            .height(40)
-            .backgroundColor("#F5F5F5")
-            .placeholderColor(Color.Grey)
-            .placeholderFont({ size: 14, weight: 400 })
-            .textFont({ size: 14, weight: 400 })
-            .onChange((value: string) => {
-              this.changeValue = value
-              if (value == '') {
-                this.isFiltered = false
-              }
-              this.isFiltered = true
-              // 搜索逻辑：过滤数据集中的城市名称
-              const filteredCity = supportedSystemTimezone.filter((city: City) => {
-                return city.name.toLowerCase().includes(value.toLowerCase())
-                  || city.timezone.toLowerCase().includes(value.toLowerCase())
-              });
-              this.filteredCities = filteredCity
-            })
-            .onSubmit((value: string) => {
-              this.isFiltered = true
-              // 搜索逻辑：过滤数据集中的城市名称
-              const filteredCity = supportedSystemTimezone.filter((city: City) => {
-                return city.name.toLowerCase().includes(value.toLowerCase())
-                  || city.timezone.toLowerCase().includes(value.toLowerCase())
-              });
-              this.filteredCities = filteredCity
-            })
-            .onTouch(() => {
-              this.isShouldFocus = true
-            })
-            .focusable(this.isShouldFocus);
-          //在需要渲染的地方使用LazyForEach并传入数据源实例
-          if (!this.isFiltered) {
+      Column() {
+        Search({ value: this.query, placeholder: $r('app.string.search') })
+          .width('100%').height(50)
+          .borderRadius(15).backgroundColor('#FFFFFF')
+          .margin({ bottom: 12 })
+          .onChange((value: string) => this.search(value))
+          .onSubmit((value: string) => this.search(value))
+
+        if (this.visibleCities.length === 0) {
+          Column() {
+            Text($r('app.string.no_results'))
+              .fontSize(18).fontWeight(FontWeight.Medium).fontColor('#675A79')
+          }
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .layoutWeight(1).width('100%')
+        } else {
+          Stack({ alignContent: Alignment.End }) {
             List({ scroller: this.scroller }) {
-              ForEach(this.unfilteredCities, (item: City, index: number) => {
+              ForEach(this.visibleCities, (item: City, index: number) => {
                 ListItem() {
                   Column() {
-                    if (index == 0) {
-                      // 第一个肯定要显示
+                    if (this.query.trim().length === 0 &&
+                      (index === 0 || item.headerWord !== this.visibleCities[index - 1].headerWord)) {
                       Text(item.headerWord)
-                    } else {
-                      // 当前字母和前一个不一样就显示
-                      if (item.headerWord != this.unfilteredCities[index-1].headerWord) {
-                        Text(item.headerWord)
+                        .fontSize(14).fontWeight(FontWeight.Bold).fontColor('#6024B5')
+                        .width('100%').margin({ left: 6, top: 14, bottom: 7 })
+                    }
+                    Row({ space: 10 }) {
+                      Column({ space: 5 }) {
+                        Text(item.name)
+                          .fontSize(18).fontWeight(FontWeight.Medium).fontColor('#0F0026')
+                          .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                        Text(`UTC${getOffsetHours(item.timezone, Date.now()) >= 0 ? '+' : ''}${getOffsetHours(item.timezone, Date.now())}`)
+                          .fontSize(13).fontColor('#675A79')
+                      }
+                      .alignItems(HorizontalAlign.Start).layoutWeight(1)
+                      if (this.isSelected(item)) {
+                        Text('✓')
+                          .fontSize(18).fontWeight(FontWeight.Bold).fontColor('#6024B5')
                       }
                     }
-                    if (this.cityList.includes(item) || this.selectedCities.includes(item.name)) {
-                      Row() {
-                        Column() {
-                          Text(item.name)
-                            .margin(10)
-                            .fontSize(20)
-                          Text(`UTC${item.offset >= 0 ? '+' + item.offset.toString()
-                            .padStart(2, '0') :
-                            '-' + Math.abs(item.offset).toString().padStart(2, '0')}:00`)
-                            .utcStyle()
-                        }
-                        .width(200)
-                        .alignItems(HorizontalAlign.Start)
-
-                        Text('√')
-                      }
-                      .rowStyle()
-                      .onClick(() => {
-                        this.getUIContext().getPromptAction().showToast({
-                          message: 'The city was added to the list!'
-                        })
-                      })
-                    } else {
-                      Row() {
-                        Column() {
-                          Text(item.name)
-                            .margin(10)
-                            .fontSize(20)
-                          //Suplement UTC with correct format
-                          Text(`UTC${item.offset >= 0 ? '+' + item.offset.toString()
-                            .padStart(2, '0') :
-                            '-' + Math.abs(item.offset).toString().padStart(2, '0')}:00`)
-                            .utcStyle()
-                        }
-                        .width(200)
-                        .alignItems(HorizontalAlign.Start)
-                      }
-                      .rowStyle()
-                    }
+                    .width('100%').height(74)
+                    .padding({ left: 16, right: 16 })
+                    .borderRadius(17).backgroundColor('#FFFFFF')
                   }
                 }
-                .onClick(() => {
-                  if (!this.cityList.includes(item)) {
-                    this.selectedCities.push(item.name);
-                    this.pathStack.pop(item);
-                  }
-                })
-              })
+                .margin({ bottom: 8 })
+                .onClick(() => this.select(item))
+              }, (item: City) => item.name)
             }
-            .onScrollIndex((start, end) => {
-              // 监听滑动时顶部的索引，查询对应的数据
-              const element = this.unfilteredCities[start]
-              // 更新选中的字母索引
-              this.selectedIndex = this.alphabets.indexOf(element.headerWord)
-            })
-          } else {
-            ForEach(this.filteredCities, (item: City) => {
-              ListItem() {
-                Row() {
-                  Column() {
-                    Text(item.name)
-                      .margin(10)
-                      .fontSize(20)
-                    //Suplement UTC with correct format
-                    Text(`UTC${item.offset >= 0 ? '+' + item.offset.toString()
-                      .padStart(2, '0') :
-                      '-' + Math.abs(item.offset).toString().padStart(2, '0')}:00`)
-                      .utcStyle()
-                  }
-                  .width(200)
-                  .alignItems(HorizontalAlign.Start)
-                }
-                .margin(5)
-                .width('95%')
-                .height('20%')
-                .borderRadius(20)
-                .backgroundColor('#f6f6f6')
+            .width('100%').height('100%')
+            .padding({ right: this.query.trim().length === 0 ? 30 : 0 })
+            .onScrollIndex((start: number) => {
+              if (this.query.trim().length === 0 && start >= 0 && start < this.visibleCities.length) {
+                this.selectedIndex = this.alphabets.indexOf(this.visibleCities[start].headerWord)
               }
-              .onClick(() => {
-                this.pathStack.pop(item); // Return to the previous page and pass in the processing result to the onPop callback of push.
-              })
             })
-          }
-        }.width('100%')
-        .height('100%')
 
-        AlphabetIndexer({ arrayValue: this.alphabets, selected: this.selectedIndex })
-          .onSelect((index: number) => {
-            // 选中的字母
-            const alphabet = this.alphabets[index];
-
-            // 调用 mapAlphabetsIndex，获取字母到索引的映射表
-            const mapIndex = this.mapAlphabetsIndex().get(alphabet);
-
-            if (mapIndex !== undefined) {
-              // 跳转到指定索引位置
-              this.scroller.scrollToIndex(mapIndex);
-              hilog.info(0x00, `Selected alphabet "${alphabet}" found in the map.`, `mapIndex:${mapIndex}`);
-
-            } else {
-              hilog.error(0x00, `Selected alphabet "${alphabet}" not found in the map.`, 'error');
+            if (this.query.trim().length === 0) {
+              AlphabetIndexer({ arrayValue: this.alphabets, selected: this.selectedIndex })
+                .width(24)
+                .color('#675A79').selectedColor('#6024B5')
+                .onSelect((index: number) => this.scrollToLetter(this.alphabets[index]))
             }
-          })
+          }
+          .layoutWeight(1).width('100%')
+        }
       }
+      .width('100%').height('100%')
+      .padding({ left: 20, right: 20, top: 12, bottom: 12 })
+      .backgroundColor('#F8F3FF')
     }
-    .title('ListPage')
+    .title($r('app.string.cities'))
+    .backgroundColor('#F8F3FF')
     .onReady((context: NavDestinationContext) => {
       this.pathStack = context.pathStack
     })
   }
-}
-
-@Extend(Row)
-function rowStyle() {
-  .margin(5)
-  .width('95%')
-  .height('20%')
-  .borderRadius(20)
-  .backgroundColor('#f6f6f6')
-}
-
-@Extend(Text)
-function utcStyle() {
-  .margin(10)
-  .fontSize(12)
-  .fontColor('#6b111111')
 }
